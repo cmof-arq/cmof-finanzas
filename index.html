@@ -202,6 +202,21 @@ body{background:var(--bg);color:var(--text);font-family:'Helvetica Neue',Arial,s
     padding:12px 10px;
   }
 }
+
+  #f-obra {
+    width: 100%;
+    background: var(--input-bg, #1e1e1e);
+    border: 1px solid var(--border, #333);
+    color: var(--text, #e8e6e0);
+    border-radius: 4px;
+    padding: .4rem .55rem;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+  }
+  #f-obra:focus { border-color: var(--accent, #ff6600); }
+  #f-obra option { background: #1e1e1e; }
 </style>
 </head>
 <body>
@@ -380,7 +395,7 @@ body{background:var(--bg);color:var(--text);font-family:'Helvetica Neue',Arial,s
       </div>
       <div class="form-field full"><label>Categoría</label><select id="f-cat" onchange="updateSubcat()"></select></div>
       <div class="form-field full"><label>Subcategoría</label><select id="f-subcat"></select></div>
-      <div class="form-field full" id="obra-field" style="display:none;"><label>Código de obra / cliente</label><input type="text" id="f-obra" placeholder="H-JMCP, K-EGSC..."></div>
+      <div class="form-field full" id="obra-field" style="display:none;"><label>Obra / proyecto</label><select id="f-obra"><option value="">— Sin obra vinculada —</option></select></div>
       <div class="form-field full"><label>Descripción</label><textarea id="f-desc" placeholder="Detalle opcional..."></textarea></div>
     </div>
     <div class="form-actions">
@@ -731,6 +746,27 @@ function renderDashboard() {
 }
 
 // ── FORM ──
+async function loadObras() {
+  var sel = document.getElementById('f-obra');
+  if (!sel) return;
+  try {
+    var res = await sbClient
+      .from('obras')
+      .select('id, codigo, nombre, estado')
+      .order('codigo', { ascending: true });
+    var obras = res.data || [];
+    sel.innerHTML = '<option value="">— Sin obra vinculada —</option>' +
+      obras.map(function(o) {
+        var label = o.codigo + (o.nombre ? ' — ' + o.nombre : '');
+        var extra = (o.estado && o.estado !== 'Activo') ? ' [' + o.estado + ']' : '';
+        return '<option value="' + o.codigo + '">' + label + extra + '</option>';
+      }).join('');
+  } catch(e) {
+    console.error('loadObras error:', e);
+    sel.innerHTML = '<option value="">Error al cargar obras</option>';
+  }
+}
+
 function openForm() {
   editingTxId = null;
   document.getElementById('modal-title').textContent = 'Nueva transacción';
@@ -739,9 +775,9 @@ function openForm() {
   document.getElementById('f-moneda').value = 'ARS';
   document.getElementById('f-medio').value = 'efectivo';
   document.getElementById('f-desc').value = '';
-  document.getElementById('f-obra').value = '';
   document.getElementById('cuotas-field').style.display = 'none';
   setTipo('ingreso');
+  loadObras();
   document.getElementById('tx-modal').classList.add('open');
 }
 
